@@ -212,6 +212,80 @@
     opacity: 1;
     transform: translateX(-50%) translateY(0);
   }
+
+  /* Server-card header (edition badge + status pill) */
+  .server-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+  .edition-badge {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 10px;
+    letter-spacing: 1.2px;
+    padding: 7px 11px;
+    border-radius: 4px;
+    background: var(--grass-dark);
+    color: #0a0e0b;
+    text-transform: uppercase;
+  }
+  .edition-badge.java {
+    background: var(--dirt);
+    color: #fff8e7;
+  }
+  .server-card.java-card { border-color: var(--dirt); }
+  .port-note {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin: 10px 4px 0;
+  }
+  .port-note code { padding: 1px 5px; font-size: 13px; }
+
+  /* Live status pill */
+  .status-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 5px 11px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    background: #0a0e0b;
+    border: 1px solid var(--line);
+    color: var(--text-dim);
+    transition: color 0.2s, border-color 0.2s, background 0.2s;
+  }
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-dim);
+    flex-shrink: 0;
+  }
+  .status-pill.online {
+    color: var(--grass);
+    border-color: var(--grass-dark);
+    background: rgba(124, 186, 58, 0.08);
+  }
+  .status-pill.online .status-dot {
+    background: var(--grass);
+    box-shadow: 0 0 8px var(--grass);
+    animation: pulse 2.2s ease-in-out infinite;
+  }
+  .status-pill.checking { color: var(--accent); }
+  .status-pill.checking .status-dot {
+    background: var(--accent);
+    animation: pulse 1.1s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.55; transform: scale(0.82); }
+  }
 </style>
 </head>
 <body>
@@ -223,7 +297,13 @@
     </header>
 
     <section class="card server-card">
-      <h2>Server Info</h2>
+      <div class="server-header">
+        <span class="edition-badge">Bedrock Edition</span>
+        <span class="status-pill checking" data-status="bedrock">
+          <span class="status-dot"></span>
+          <span class="status-text">Checking…</span>
+        </span>
+      </div>
       <p class="server-name">Nolan &amp; Fiona's Bedrock Server</p>
 
       <div class="field" data-copy="winter-stick.gl.at.ply.gg">
@@ -236,6 +316,25 @@
         <span class="field-value">55838</span>
         <span class="field-copy">tap to copy</span>
       </div>
+      <p class="port-note">For iPad, Switch, Xbox, PlayStation, and Windows 10/11 (Bedrock).</p>
+    </section>
+
+    <section class="card server-card java-card">
+      <div class="server-header">
+        <span class="edition-badge java">Java Edition</span>
+        <span class="status-pill checking" data-status="java">
+          <span class="status-dot"></span>
+          <span class="status-text">Checking…</span>
+        </span>
+      </div>
+      <p class="server-name">Nolan &amp; Fiona's Java Server</p>
+
+      <div class="field" data-copy="winter-stick.gl.joinmc.link">
+        <span class="field-label">Address</span>
+        <span class="field-value">winter-stick.gl.joinmc.link</span>
+        <span class="field-copy">tap to copy</span>
+      </div>
+      <p class="port-note">For Minecraft: Java Edition (PC/Mac/Linux). Default port <code>25565</code> — no need to enter it.</p>
     </section>
 
     <section class="card">
@@ -248,8 +347,8 @@
     </section>
 
     <section class="card">
-      <h2>How to Add the Server</h2>
-      <p style="color: var(--text-dim); font-size: 14px; margin: 0 0 16px;">Tap your device to expand:</p>
+      <h2>How to Add the Bedrock Server</h2>
+      <p style="color: var(--text-dim); font-size: 14px; margin: 0 0 16px;">Tap your device to expand (Java Edition users: just paste the Java address into your client's server list):</p>
 
       <div class="platform-grid">
         <details class="platform" open>
@@ -342,6 +441,40 @@
   <div class="toast" id="toast">Copied!</div>
 
   <script>
+    // Live status via mcsrvstat.us (free, CORS-friendly, ~1 min API cache)
+    const SERVERS = {
+      bedrock: 'https://api.mcsrvstat.us/bedrock/3/winter-stick.gl.at.ply.gg:55838',
+      java:    'https://api.mcsrvstat.us/3/winter-stick.gl.joinmc.link'
+    };
+    async function checkStatus(key) {
+      const pill = document.querySelector(`[data-status="${key}"]`);
+      if (!pill) return;
+      const text = pill.querySelector('.status-text');
+      try {
+        const r = await fetch(SERVERS[key], { cache: 'no-store' });
+        const d = await r.json();
+        if (d && d.online) {
+          pill.className = 'status-pill online';
+          const c = d.players?.online ?? 0;
+          const max = d.players?.max ?? 0;
+          text.textContent = c > 0
+            ? `Online · ${c}${max ? '/' + max : ''} playing`
+            : 'Online';
+        } else {
+          pill.className = 'status-pill';
+          text.textContent = 'Offline';
+        }
+      } catch {
+        pill.className = 'status-pill';
+        text.textContent = 'Unknown';
+      }
+    }
+    function refreshAll() {
+      Object.keys(SERVERS).forEach(checkStatus);
+    }
+    refreshAll();
+    setInterval(refreshAll, 60_000);
+
     document.querySelectorAll('.field').forEach(el => {
       el.addEventListener('click', async () => {
         const text = el.dataset.copy;
