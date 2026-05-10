@@ -441,10 +441,10 @@
   <div class="toast" id="toast">Copied!</div>
 
   <script>
-    // Live status via mcsrvstat.us (free, CORS-friendly, ~1 min API cache)
+    // Live status via mcstatus.io (free, CORS-friendly, ~1 min API cache, handles new MC versioning)
     const SERVERS = {
-      bedrock: 'https://api.mcsrvstat.us/bedrock/3/winter-stick.gl.at.ply.gg:55838',
-      java:    'https://api.mcsrvstat.us/3/winter-stick.gl.joinmc.link'
+      bedrock: 'https://api.mcstatus.io/v2/status/bedrock/winter-stick.gl.at.ply.gg:55838',
+      java:    'https://api.mcstatus.io/v2/status/java/winter-stick.gl.joinmc.link'
     };
     async function checkStatus(key) {
       const pill = document.querySelector(`[data-status="${key}"]`);
